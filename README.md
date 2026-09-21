@@ -21,7 +21,7 @@ Flujo unidireccional de dependencias: **UI → ViewModel → Casos de uso (domai
 El dominio no conoce clases concretas de Firebase ni de Room, solo interfaces de repositorio,
 lo que permite cambiar la fuente de datos sin tocar la lógica de negocio ni la interfaz.
 
-Ver diagrama de arquitectura en `/docs/arquitectura.png`.
+Ver diagrama de arquitectura en el informe tecnico.
 
 ## Configuración y ejecución
 1. Clona el repositorio.
