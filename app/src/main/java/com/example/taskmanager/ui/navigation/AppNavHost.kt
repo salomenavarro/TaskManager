@@ -1,3 +1,4 @@
+// Reemplaza: app/src/main/java/com/example/taskmanager/ui/navigation/AppNavHost.kt
 package com.example.taskmanager.ui.navigation
 
 import androidx.compose.runtime.Composable
@@ -38,21 +39,26 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             )
         }
 
-        // ui/navigation/AppNavHost.kt (reemplaza el composable de TaskList)
         composable(Screen.TaskList.route) {
             TaskListScreen(
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) // limpia todo el backstack, no se puede volver con Atrás
                     }
+                },
+                // FIX: antes no existía forma de llegar a "drafts" desde ninguna pantalla.
+                // Esta es la causa real de que los borradores "no funcionaran": la ruta
+                // estaba registrada en el NavHost pero era inalcanzable desde la UI.
+                onNavigateToDrafts = {
+                    navController.navigate(Screen.Drafts.route)
                 }
             )
         }
 
-        // ui/navigation/AppNavHost.kt — agrega dentro del NavHost
         composable(Screen.Drafts.route) {
-            DraftListScreen()
+            DraftListScreen(
+                onBack = { navController.popBackStack() }
+            )
         }
-
     }
 }
