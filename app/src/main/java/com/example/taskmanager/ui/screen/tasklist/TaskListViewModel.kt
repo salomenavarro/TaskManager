@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.taskmanager.domain.model.Task
 import com.example.taskmanager.domain.usecase.auth.GetCurrentUserUseCase
+import com.example.taskmanager.domain.usecase.draft.SaveDraftUseCase
 import com.example.taskmanager.domain.usecase.task.CreateTaskUseCase
 import com.example.taskmanager.domain.usecase.task.DeleteTaskUseCase
 import com.example.taskmanager.domain.usecase.task.GetTasksUseCase
@@ -18,13 +19,13 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// ui/screen/tasklist/TaskListViewModel.kt
 @HiltViewModel
 class TaskListViewModel @Inject constructor(
     private val getTasksUseCase: GetTasksUseCase,
     private val createTaskUseCase: CreateTaskUseCase,
     private val updateTaskUseCase: UpdateTaskUseCase,
     private val deleteTaskUseCase: DeleteTaskUseCase,
+    private val saveDraftUseCase: SaveDraftUseCase,
     private val getCurrentUserUseCase: GetCurrentUserUseCase
 ) : ViewModel() {
 
@@ -52,15 +53,30 @@ class TaskListViewModel @Inject constructor(
     }
 
     fun addTask(title: String, description: String) {
+        if (title.isBlank()) return
         viewModelScope.launch {
-            createTaskUseCase(ownerId, title, description)
+            createTaskUseCase(ownerId, title.trim(), description.trim())
                 .onFailure { e -> _uiState.update { it.copy(errorMessage = e.message) } }
+        }
+    }
+
+    fun saveDraft(title: String, description: String) {
+        if (title.isBlank()) return
+        viewModelScope.launch {
+            saveDraftUseCase(ownerId, title.trim(), description.trim())
         }
     }
 
     fun toggleCompleted(task: Task) {
         viewModelScope.launch {
             updateTaskUseCase(task.id, task.title, task.description, !task.completed)
+        }
+    }
+
+    fun updateTaskDetails(task: Task, newTitle: String, newDescription: String) {
+        if (newTitle.isBlank()) return // Validación anti espacios vacíos
+        viewModelScope.launch {
+            updateTaskUseCase(task.id, newTitle.trim(), newDescription.trim(), task.completed)
         }
     }
 
