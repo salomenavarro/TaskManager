@@ -4,14 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.taskmanager.domain.model.TaskDraft
 import com.example.taskmanager.domain.usecase.auth.GetCurrentUserUseCase
-import com.example.taskmanager.domain.usecase.auth.LoginUserUseCase
-import com.example.taskmanager.domain.usecase.auth.LogoutUserUseCase
-import com.example.taskmanager.domain.usecase.auth.RegisterUserUseCase
 import com.example.taskmanager.domain.usecase.draft.DeleteDraftUseCase
 import com.example.taskmanager.domain.usecase.draft.GetDraftsUseCase
 import com.example.taskmanager.domain.usecase.draft.PublishDraftUseCase
 import com.example.taskmanager.domain.usecase.draft.SaveDraftUseCase
-import com.example.taskmanager.ui.state.AuthUiState
+import com.example.taskmanager.domain.usecase.draft.UpdateDraftUseCase
 import com.example.taskmanager.ui.state.DraftListUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
@@ -22,11 +19,11 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// ui/screen/drafts/DraftListViewModel.kt
 @HiltViewModel
 class DraftListViewModel @Inject constructor(
     private val getDraftsUseCase: GetDraftsUseCase,
     private val saveDraftUseCase: SaveDraftUseCase,
+    private val updateDraftUseCase: UpdateDraftUseCase, // <-- Agregado
     private val deleteDraftUseCase: DeleteDraftUseCase,
     private val publishDraftUseCase: PublishDraftUseCase,
     private val getCurrentUserUseCase: GetCurrentUserUseCase
@@ -46,7 +43,20 @@ class DraftListViewModel @Inject constructor(
     }
 
     fun saveDraft(title: String, description: String) {
-        viewModelScope.launch { saveDraftUseCase(ownerId, title, description) }
+        if (title.isBlank()) return // Validación anti espacios vacíos
+        viewModelScope.launch { saveDraftUseCase(ownerId, title.trim(), description.trim()) }
+    }
+
+    fun updateDraft(draft: TaskDraft, newTitle: String, newDescription: String) {
+        if (newTitle.isBlank()) return // Validación anti espacios vacíos
+        viewModelScope.launch {
+            val updatedDraft = draft.copy(
+                title = newTitle.trim(),
+                description = newDescription.trim(),
+                savedAt = System.currentTimeMillis()
+            )
+            updateDraftUseCase(updatedDraft)
+        }
     }
 
     fun deleteDraft(draft: TaskDraft) {
@@ -54,10 +64,16 @@ class DraftListViewModel @Inject constructor(
     }
 
     fun publishDraft(draft: TaskDraft) {
+        if (_uiState.value.publishingDraftId != null) return
+
         viewModelScope.launch {
+            _uiState.update { it.copy(publishingDraftId = draft.id, publishError = null) }
+
             publishDraftUseCase(draft).onFailure { e ->
                 _uiState.update { it.copy(publishError = e.message) }
             }
+
+            _uiState.update { it.copy(publishingDraftId = null) }
         }
     }
 
